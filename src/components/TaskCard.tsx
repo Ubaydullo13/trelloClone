@@ -1,20 +1,118 @@
+import { useState } from "react";
 import TrashIcon from "../icons/TrashIcon";
-import { Task } from "../types"
+import { Id, Task } from "../types";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Props {
   task: Task;
-
+  deleteTask: (id: Id) => void;
+  updateTask: (id: Id, content: string) => void;
 }
 
-function TaskCard({task}: Props) {
+function TaskCard({ task, deleteTask, updateTask }: Props) {
+  const [mouseIsOver, setMouseisOver] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+
+
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    data: {
+      type: "Task",
+      task,
+    },
+    disabled: editMode,
+  });
+
+  const style = {
+    transition,
+    transform: CSS.Transform.toString(transform),
+  };
+
+  function toggleEditMode() {
+    setEditMode((prev) => !prev);
+    setMouseisOver(false);
+  }
+  
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="
+        opacity-30
+      bg-mainBackgroundColor p-3 items-center flex text-left rounded-xl border-2 border-rose-500  cursor-grab relative
+      "
+      />
+    );
+  }
+
+  if (editMode) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        onClick={toggleEditMode}
+        className="bg-mainBackgroundColor p-3 flex items-center  text-left rounded-xl hover:ring-2 hover:ring-inset hover:ring-rose-400
+        cursor-grab relative"
+      >
+        <textarea
+          className="
+          h-[90%]
+          w-full
+          resize-none border-none rounded bg-transparent
+          text-white focus:outline-none
+          "
+          value={task.content}
+          autoFocus
+          onBlur={toggleEditMode}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.shiftKey) {
+              toggleEditMode();
+            }
+          }}
+          onChange={(e) => updateTask(task.id, e.target.value)}
+        ></textarea>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-mainBackgroundColor h-24 min-h24 p-2.5 flex items-center  text-left rounded-xl hover:ring-2 hover:ring-inset hover:ring-rose-400
-        cursor-grab relative">{task.content}
-        <button className="stroke-white absolute right-4 top-1/2 -translate-y-1/2 bg-columnBackgroundColor p-2 rounded">
-          <TrashIcon/>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={toggleEditMode}
+      className="bg-mainBackgroundColor p-3 flex items-center  text-left rounded-xl hover:ring-2 hover:ring-inset hover:ring-rose-400
+        cursor-grab relative task"
+      onMouseEnter={() => setMouseisOver(true)}
+      onMouseLeave={() => setMouseisOver(false)}
+    >
+      <p className="my-auto h-[90%] w-full overflow-y-auto overflow-x-hidden whitespace-pre-wrap">
+        {task.content}
+      </p>
+      {mouseIsOver && (
+        <button
+          onClick={() => {
+            deleteTask(task.id);
+          }}
+          className="stroke-white absolute right-4 top-1/2 -translate-y-1/2 bg-columnBackgroundColor p-1 rounded opacity-60 hover:opacity-100"
+        >
+          <TrashIcon />
         </button>
-        </div>
-  )
+      )}
+    </div>
+  );
 }
 
-export default TaskCard
+export default TaskCard;
